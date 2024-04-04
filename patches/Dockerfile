@@ -16,7 +16,7 @@ RUN \
   cd /tmp && \
   curl -fsSL https://github.com/libvips/libvips/archive/refs/heads/master.tar.gz | tar -xz && \
   cd /tmp/libvips-master && \
-	CC=clang CXX=clang++ CFLAGS="-O3" CXXFLAGS="-O3" meson setup build -Dexamples=false -Dintrospection=disabled && \
+  CC=clang CXX=clang++ CFLAGS="-O3" CXXFLAGS="-O3" meson setup build -Dexamples=false -Dintrospection=disabled -Dcfitsio=enabled -Dcgif=enabled -Dexif=enabled -Dfftw=enabled -Darchive=enabled -Dheif=enabled -Djpeg=enabled -Djpeg-xl=enabled -Dopenslide=enabled -Dhighway=enabled -Dorc=enabled -Dpng=enabled -Drsvg=enabled -Dwebp=enabled && \
   cd build && \
   meson compile -j$(nproc) && \
   meson install
@@ -33,6 +33,8 @@ RUN go mod download
 
 # Copy imaginary sources
 COPY . .
+
+RUN go test ./... -test.v -race -test.coverprofile=atomic .
 
 # Compile imaginary
 RUN go build -a \
