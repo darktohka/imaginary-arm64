@@ -16,6 +16,10 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     name: Build ${{ matrix.architecture }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: "${{ github.workspace }}/build"
       - name: Checkout Imaginary
         uses: actions/checkout@v4
         with:
@@ -37,6 +41,7 @@ jobs:
       - name: Build image
         working-directory: "${{ github.workspace }}/imaginary"
         run: |
+          cp -r ../build/patches/* . && \
           ${{ matrix.buildctl }} build \
             --frontend dockerfile.v0 \
             --local context=. \
