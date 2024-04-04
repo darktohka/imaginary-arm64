@@ -1,0 +1,45 @@
+name: Build Imaginary
+
+on:
+  push:
+  repository_dispatch:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runs-on: ARM64
+            architecture: arm64
+            buildctl: "buildctl"
+    runs-on: ${{ matrix.runs-on }}
+    name: Build ${{ matrix.architecture }}
+    steps:
+      - name: Checkout Imaginary
+        uses: actions/checkout@v4
+        with:
+          repository: "h2non/imaginary"
+          ref: "master"
+          path: "${{ github.workspace}}/imaginary"
+      - name: Login into Docker
+        shell: bash
+        run: |
+          mkdir -p ~/.docker
+          jq --arg hostname "${{ secrets.DOCKER_HOST }}" --arg username "${{ secrets.DOCKER_USERNAME }}" --arg password "${{ secrets.DOCKER_PASSWORD }}" \
+            '. + {"auths": (.auths + {($hostname): { "auth": "\($username):\($password)" | @base64 } } ) }' -n > ~/.docker/config.json
+      - name: Set up Buildkit
+        if: ${{ matrix.architecture == 'amd64' }}
+        shell: bash
+        run: |
+          curl -sL https://github.com/moby/buildkit/releases/download/v0.13.1/buildkit-v0.13.1.linux-amd64.tar.gz | sudo tar -xz  -C /usr && \
+          sudo buildkitd &
+      - name: Build image
+        working-directory: "${{ github.workspace }}/imaginary"
+        run: |
+          ${{ matrix.buildctl }} build \
+            --frontend dockerfile.v0 \
+            --local context=. \
+            --local dockerfile=. \
+            --opt platform="linux/${{ matrix.architecture }}" \
+            --output type=image,\"name=${{ secrets.DOCKER_TAG }}:${{ matrix.architecture }}\",push=true,store=false
